@@ -10,7 +10,7 @@ app.use(cors({
 }));
 const io = new Server(server, {
     cors: {
-        origin: '*', // your frontend domain or Nuxt app
+        origin: '*',
         methods: ["GET", "POST"],
     },
 });
@@ -19,16 +19,23 @@ app.get('/', (req, res) => {
     res.send('Socket.io server is running');
 });
 
-// Socket.io connection
+const messages = []
+
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
+    io.to(socket.id).emit('loaded', socket.id);
 
-    // Listen for a custom event from the client
-    socket.on('chatMessage', (msg) => {
-        console.log('Message received:', msg);
+    socket.on('joinRoom', (room) => {
+        socket.join(room);
+        const filteredMessages = messages.filter((msg) => msg.room === room)
+        io.to(room).emit('prevMessages', filteredMessages);
+    });
 
-        // Emit the message to all connected clients
-        io.emit('chatMessage', msg);
+    socket.on('chatMessage', ({ room, message, senderName }) => {
+        messages.push({
+            room, message, senderName
+        })
+        io.to(room).emit('chatMessage', { message, sender: socket.id, senderName: senderName });
     });
 
     socket.on('disconnect', () => {
@@ -36,7 +43,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// Run the server
 server.listen(3001, () => {
     console.log('Socket.io server is listening on port 3001');
 });
