@@ -32,10 +32,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('chatMessage', ({ room, message, senderName }) => {
+        const now = Date.now()
         messages.push({
-            room, message, senderName
+            room, message, senderName, now
         })
-        io.to(room).emit('chatMessage', { message, sender: socket.id, senderName: senderName });
+        io.to(room).emit('chatMessage', { message, sender: socket.id, senderName: senderName, now });
     });
 
     socket.on('disconnect', () => {
